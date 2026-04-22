@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 	title TEXT NOT NULL,
 	description TEXT NOT NULL DEFAULT '',
 	status TEXT NOT NULL,
+	frequency JSONB,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
