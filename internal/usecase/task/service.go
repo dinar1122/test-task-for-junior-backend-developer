@@ -108,6 +108,10 @@ func validateCreateInput(input CreateInput) (CreateInput, error) {
 		return CreateInput{}, fmt.Errorf("%w: invalid status", ErrInvalidInput)
 	}
 
+	if err := validateFrequency(input.Frequency); err != nil {
+		return CreateInput{}, err
+	}
+
 	return input, nil
 }
 
@@ -123,5 +127,59 @@ func validateUpdateInput(input UpdateInput) (UpdateInput, error) {
 		return UpdateInput{}, fmt.Errorf("%w: invalid status", ErrInvalidInput)
 	}
 
+	if err := validateFrequency(input.Frequency); err != nil {
+		return UpdateInput{}, err
+	}
+
 	return input, nil
+}
+
+func validateFrequency(f *taskdomain.Frequency) error {
+	if f == nil {
+		return nil
+	}
+
+	switch f.Type {
+	case taskdomain.FrequencyNone:
+		return nil
+
+	case taskdomain.FrequencyDaily:
+		if f.EveryNDays == nil || *f.EveryNDays <= 0 {
+			return fmt.Errorf("%w: every_n_days must be greater than 0", ErrInvalidInput)
+		}
+
+	case taskdomain.FrequencyMonthly:
+		if len(f.DaysOfMonth) == 0 {
+			return fmt.Errorf("%w: days_of_month is required", ErrInvalidInput)
+		}
+
+		for _, day := range f.DaysOfMonth {
+			if day < 1 || day > 30 {
+				return fmt.Errorf("%w: days_of_month values must be between 1 and 30", ErrInvalidInput)
+			}
+		}
+
+	case taskdomain.FrequencyDates:
+		if len(f.Dates) == 0 {
+			return fmt.Errorf("%w: dates is required", ErrInvalidInput)
+		}
+
+	case taskdomain.FrequencyMonthParity:
+		if f.MonthParity == nil {
+			return fmt.Errorf("%w: month_parity is required", ErrInvalidInput)
+		}
+
+		if *f.MonthParity != taskdomain.MonthParityOdd && *f.MonthParity != taskdomain.MonthParityEven {
+			return fmt.Errorf("%w: month_parity must be odd or even", ErrInvalidInput)
+		}
+
+	default:
+		return fmt.Errorf("%w: invalid frequency type", ErrInvalidInput)
+	}
+
+	if f.StartDate != nil && f.EndDate != nil && f.EndDate.Before(*f.StartDate) {
+		return fmt.Errorf("%w: end_date must not be before start_date", ErrInvalidInput)
+	}
+
+	return nil
 }
