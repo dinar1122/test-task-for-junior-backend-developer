@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -100,7 +101,19 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.usecase.List(r.Context())
+	var input taskusecase.ListInput
+
+	rawDate := r.URL.Query().Get("date")
+	if rawDate != "" {
+		parsed, err := time.Parse("2006-01-02", rawDate)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, errors.New("invalid date format, expected YYYY-MM-DD"))
+			return
+		}
+		input.Date = &parsed
+	}
+
+	tasks, err := h.usecase.List(r.Context(), input)
 	if err != nil {
 		writeUsecaseError(w, err)
 		return

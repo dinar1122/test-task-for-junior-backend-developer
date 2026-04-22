@@ -13,6 +13,9 @@ type Service struct {
 	repo Repository
 	now  func() time.Time
 }
+type ListInput struct {
+	Date *time.Time
+}
 
 func NewService(repo Repository) *Service {
 	return &Service{
@@ -88,8 +91,25 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) List(ctx context.Context) ([]taskdomain.Task, error) {
-	return s.repo.List(ctx)
+func (s *Service) List(ctx context.Context, input ListInput) ([]taskdomain.Task, error) {
+	tasks, err := s.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if input.Date == nil {
+		return tasks, nil
+	}
+
+	filtered := make([]taskdomain.Task, 0, len(tasks))
+	for _, task := range tasks {
+		taskCopy := task
+		if taskCopy.OccursOn(*input.Date) {
+			filtered = append(filtered, taskCopy)
+		}
+	}
+
+	return filtered, nil
 }
 
 func validateCreateInput(input CreateInput) (CreateInput, error) {
